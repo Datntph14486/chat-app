@@ -1,0 +1,153 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <title>Messenger Style Chat</title>
+  <script src="https://cdn.socket.io/4.7.1/socket.io.min.js"></script>
+  <style>
+    body {
+      font-family: Arial, sans-serif;
+      background: #f0f2f5;
+      margin: 0;
+      padding: 20px;
+    }
+
+    #chat-container {
+      max-width: 600px;
+      margin: auto;
+      background: #fff;
+      padding: 20px;
+      border-radius: 10px;
+      box-shadow: 0 2px 8px rgba(0,0,0,0.1);
+    }
+
+    #messages {
+      list-style: none;
+      padding: 0;
+      margin: 0 0 20px 0;
+      max-height: 400px;
+      overflow-y: auto;
+    }
+
+    .message {
+      display: flex;
+      margin-bottom: 10px;
+    }
+
+    .message.me {
+      justify-content: flex-end;
+    }
+
+    .message.you {
+      justify-content: flex-start;
+    }
+
+    .bubble {
+      max-width: 70%;
+      padding: 10px 15px;
+      border-radius: 18px;
+      position: relative;
+      font-size: 14px;
+      line-height: 1.4;
+    }
+
+    .me .bubble {
+      background: #0084ff;
+      color: white;
+      border-bottom-right-radius: 2px;
+    }
+
+    .you .bubble {
+      background: #e4e6eb;
+      color: black;
+      border-bottom-left-radius: 2px;
+    }
+
+    #msg {
+      width: 80%;
+      padding: 10px;
+      font-size: 14px;
+    }
+
+    button {
+      padding: 10px 15px;
+      font-size: 14px;
+    }
+
+    #login-section, #chat-section {
+      text-align: center;
+    }
+  </style>
+</head>
+<body>
+  <div id="chat-container">
+    <div id="login-section">
+      <h2>Enter your name to join</h2>
+      <input type="text" id="username" placeholder="Your name" />
+      <button onclick="startChat()">Join</button>
+    </div>
+
+    <div id="chat-section" style="display: none;">
+      <ul id="messages"></ul>
+      <input id="msg" placeholder="Enter message" />
+      <button onclick="sendMessage()">Send</button>
+    </div>
+  </div>
+
+  <script>
+    let socket;
+    let username = '';
+
+    function startChat() {
+      username = document.getElementById('username').value.trim();
+      if (!username) {
+        alert('Please enter your name!');
+        return;
+      }
+
+      socket = io('http://localhost:3000');
+
+      socket.on('connect', () => {
+        console.log('Connected as', username);
+      });
+
+      socket.on('chatHistory', (messages) => {
+        messages.forEach(addMessage);
+      });
+
+      socket.on('chat', (msg) => {
+        addMessage(msg);
+      });
+
+      document.getElementById('login-section').style.display = 'none';
+      document.getElementById('chat-section').style.display = 'block';
+    }
+
+    function sendMessage() {
+      const message = document.getElementById('msg').value.trim();
+      if (message && socket) {
+        socket.emit('chat', {
+          sender: username,
+          message,
+        });
+        document.getElementById('msg').value = '';
+      }
+    }
+
+    function addMessage(msg) {
+      const li = document.createElement('li');
+      li.classList.add('message');
+      li.classList.add(msg.sender === username ? 'me' : 'you');
+
+      const bubble = document.createElement('div');
+      bubble.classList.add('bubble');
+      bubble.textContent = msg.sender + ': ' + msg.message;
+
+      li.appendChild(bubble);
+      document.getElementById('messages').appendChild(li);
+
+      // Auto scroll
+      document.getElementById('messages').scrollTop = document.getElementById('messages').scrollHeight;
+    }
+  </script>
+</body>
+</html>
